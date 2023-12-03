@@ -1,0 +1,184 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Admin Interface</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <link rel="icon" href="images/icon.png" type="image/x-icon"> 
+    <style>
+        .highlight {
+            background-color: rgb(238, 233, 233);
+        }
+
+        th {
+            background-color: black;
+            color: white;
+        }
+
+        .search-container {
+            margin-bottom: 50px;
+            padding-right: 0px;
+        }
+        
+
+    </style>
+</head>
+<body>
+
+<div class="container mt-4">
+    
+    <div class="search-container">
+        <input type="text" id="searchInput" class="form-control" placeholder="Search...">
+        <button class="btn btn-primary ml-2" id="searchButton">Search</button>
+    </div>
+
+    <table class="table table-bordered">
+        <thead>
+        <tr>
+            <th><input type="checkbox" id="selectAll"></th>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody id="userTableBody">
+        
+        </tbody>
+    </table>
+
+    <div class="row">
+        <div class="col-md-6">
+            <button class="btn btn-secondary first-page">First Page</button>
+            <button class="btn btn-secondary previous-page">Previous Page</button>
+            <span id="paginationInfo"></span>
+            <button class="btn btn-secondary next-page">Next Page</button>
+            <button class="btn btn-secondary last-page">Last Page</button>
+            <button class="btn btn-danger" id="deleteSelected"><i class="fas fa-trash"></i> Delete Selected</button>
+        </div>
+        <div class="col-md-6 text-right">
+            
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+
+
+<script>
+    
+    $.get('https://geektrust.s3-ap-southeast-1.amazonaws.com/adminui-problem/members.json', function (userData) {
+        
+        userData.sort((a, b) => a.id - b.id);
+
+        let currentPage = 1;
+        const rowsPerPage = 10;
+
+        renderTable();
+
+
+        function renderTable() {
+            const searchInput = $('#searchInput').val().toLowerCase();
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const endIndex = startIndex + rowsPerPage;
+
+           
+            const filteredData = userData.filter(user =>
+                user.id.toString().includes(searchInput) ||
+                user.name.toLowerCase().includes(searchInput) ||
+                user.email.toLowerCase().includes(searchInput)
+            );
+
+            
+            const totalRecords = filteredData.length;
+            const totalPages = Math.ceil(totalRecords / rowsPerPage);
+            $('#paginationInfo').text(`Page ${currentPage} of ${totalPages}`);
+
+            
+            const currentPageData = filteredData.slice(startIndex, endIndex);
+
+            const tableBody = $('#userTableBody');
+            tableBody.empty();
+
+            currentPageData.forEach(user => {
+                const row = $(`<tr data-id="${user.id}"><td><input type="checkbox"></td><td>${user.id}</td><td>${user.name}</td><td>${user.email}</td><td><button class="btn btn-primary edit">Edit</button> <button class="btn btn-danger delete">Delete</button></td></tr>`);
+                tableBody.append(row);
+            });
+        }
+
+
+       
+        $('#searchButton').on('click', function () {
+            currentPage = 1;
+            renderTable();
+        });
+
+        
+        $('.first-page').on('click', function () {
+            currentPage = 1;
+            renderTable();
+        });
+
+        $('.previous-page').on('click', function () {
+            if (currentPage > 1) {
+                currentPage--;
+                renderTable();
+            }
+        });
+
+        $('.next-page').on('click', function () {
+            const totalPages = Math.ceil(userData.length / rowsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderTable();
+            }
+        });
+
+        $('.last-page').on('click', function () {
+            const totalPages = Math.ceil(userData.length / rowsPerPage);
+            currentPage = totalPages;
+            renderTable();
+        });
+
+        $('#selectAll').on('change', function () {
+            const isChecked = $(this).prop('checked');
+            $('tbody :checkbox').prop('checked', isChecked);
+        });
+
+       
+        $('#deleteSelected').on('click', function () {
+            const selectedRows = $('tbody :checkbox:checked').closest('tr');
+            selectedRows.remove();
+        });
+
+      
+        $('#userTableBody').on('click', '.edit', function () {
+            const row = $(this).closest('tr');
+            row.find('td').not(':first-child').attr('contenteditable', 'true').addClass('highlight');
+            row.find('.edit').addClass('save').removeClass('edit');
+        });
+
+        
+
+        $('#userTableBody').on('click', '.save', function () {
+            const row = $(this).closest('tr');
+            row.find('td').not(':first-child').attr('contenteditable', 'false').removeClass('highlight');
+            row.find('.save').addClass('edit').removeClass('save');
+        });
+
+        $('#userTableBody').on('click', '.delete', function () {
+            const row = $(this).closest('tr');
+            row.remove();
+        });
+    });
+</script>
+
+</body>
+</html>
+
+
